@@ -17,9 +17,11 @@ import {
   Play,
   Pause,
   Eye,
-  Settings
+  Settings,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
-import { allQuizzes, knowledgeGapsData } from '../data';
+import { allQuizzes, knowledgeGapsData, allSubjects as staticSubjects } from '../data';
 import { QuizData, Question, GapsData, Subject } from '../types';
 import { AdminDashboard } from './Admin';
 
@@ -38,6 +40,17 @@ export default function QuizPlatform() {
   const [isAutoplay, setIsAutoplay] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
   const [selectedSubject, setSelectedSubject] = useState<Subject | 'all'>('all');
+  const [subjects, setSubjects] = useState<Subject[]>(staticSubjects);
+  const [isHtmlExpanded, setIsHtmlExpanded] = useState(false);
+
+  useEffect(() => {
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      fetch('/api/subjects')
+        .then(res => res.json())
+        .then(data => setSubjects(data))
+        .catch(err => console.error('Failed to fetch subjects', err));
+    }
+  }, []);
 
   const isRtl = lang === 'ar';
 
@@ -223,8 +236,18 @@ export default function QuizPlatform() {
                 </p>
               </div>
 
-              <div className="flex justify-center gap-4 mb-8">
-                {(['all', 'chemistry', 'biology', 'physics'] as const).map(subj => (
+              <div className="flex justify-center gap-4 flex-wrap mb-8">
+                <button
+                  onClick={() => setSelectedSubject('all')}
+                  className={`px-6 py-2 rounded-full font-bold uppercase tracking-widest text-sm transition-colors border-2 ${
+                    selectedSubject === 'all'
+                      ? 'bg-emerald-600 text-white border-emerald-600'
+                      : 'bg-transparent text-slate-500 border-slate-200 dark:border-slate-800 hover:border-emerald-400'
+                  }`}
+                >
+                  All
+                </button>
+                {subjects.map(subj => (
                   <button
                     key={subj}
                     onClick={() => setSelectedSubject(subj)}
@@ -234,7 +257,7 @@ export default function QuizPlatform() {
                         : 'bg-transparent text-slate-500 border-slate-200 dark:border-slate-800 hover:border-emerald-400'
                     }`}
                   >
-                    {subj}
+                    {subj.charAt(0).toUpperCase() + subj.slice(1)}
                   </button>
                 ))}
               </div>
@@ -440,21 +463,30 @@ export default function QuizPlatform() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="max-w-4xl mx-auto"
+              className={`${isHtmlExpanded ? 'fixed inset-0 z-[60] p-4 bg-slate-950/90' : 'max-w-4xl mx-auto'}`}
             >
-              <div className="bg-white dark:bg-slate-900 p-6 sm:p-12 rounded-[2.5rem] shadow-2xl border border-slate-200 dark:border-slate-800">
-                <div className="flex justify-between items-center mb-8">
+              <div className={`bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col ${isHtmlExpanded ? 'h-full rounded-2xl' : 'p-6 sm:p-12 rounded-[2.5rem]'}`}>
+                <div className={`flex justify-between items-center mb-8 ${isHtmlExpanded ? 'p-6 pb-0' : ''}`}>
                   <h2 className="text-3xl font-bold text-slate-900 dark:text-white">
                     {lang === 'en' ? currentQuiz.title_en : currentQuiz.title_ar}
                   </h2>
-                  <button onClick={() => setView('home')} className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
-                    <Home className="w-5 h-5" /> {lang === 'en' ? 'Back' : 'رجوع'}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={() => setIsHtmlExpanded(!isHtmlExpanded)}
+                      className="p-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                      title={isHtmlExpanded ? 'Minimize' : 'Expand'}
+                    >
+                      {isHtmlExpanded ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
+                    </button>
+                    <button onClick={() => { setView('home'); setIsHtmlExpanded(false); }} className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+                      <Home className="w-5 h-5" /> {lang === 'en' ? 'Back' : 'رجوع'}
+                    </button>
+                  </div>
                 </div>
-                <div className="w-full aspect-[16/9] sm:aspect-video rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800">
+                <div className={`w-full overflow-hidden border border-slate-200 dark:border-slate-800 ${isHtmlExpanded ? 'flex-1 rounded-b-2xl' : 'aspect-[16/9] sm:aspect-video rounded-2xl'}`}>
                   <iframe 
                     srcDoc={currentQuiz.htmlContent || ''} 
-                    className="w-full h-full border-none"
+                    className="w-full h-full border-none bg-white"
                     title={currentQuiz.title_en}
                     sandbox="allow-scripts allow-same-origin"
                   />

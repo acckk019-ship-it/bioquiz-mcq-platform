@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { QuizData, Subject } from '../types';
-import { allQuizzes as staticQuizzes } from '../data';
+import { allQuizzes as staticQuizzes, allSubjects as staticSubjects } from '../data';
 
 interface AdminProps {
   onClose: () => void;
@@ -13,6 +13,8 @@ export const AdminDashboard: React.FC<AdminProps> = ({ onClose }) => {
   const [message, setMessage] = useState('');
   
   const [quizzes, setQuizzes] = useState<QuizData[]>(staticQuizzes);
+  const [subjects, setSubjects] = useState<Subject[]>(staticSubjects);
+  const [newSubjectName, setNewSubjectName] = useState('');
   const [editingQuiz, setEditingQuiz] = useState<QuizData | null>(null);
   const [editJsonStr, setEditJsonStr] = useState('');
   
@@ -23,7 +25,15 @@ export const AdminDashboard: React.FC<AdminProps> = ({ onClose }) => {
       fetch('/api/quizzes')
         .then(res => res.json())
         .then(data => setQuizzes(data))
-        .catch(err => console.error('Failed to fetch from local API', err));
+        .catch(err => console.error('Failed to fetch quizzes', err));
+
+      fetch('/api/subjects')
+        .then(res => res.json())
+        .then(data => {
+          setSubjects(data);
+          if (data.length > 0) setSubject(data[0]);
+        })
+        .catch(err => console.error('Failed to fetch subjects', err));
     }
   }, [isLocalhost, isAuthenticated]);
 
@@ -39,7 +49,7 @@ export const AdminDashboard: React.FC<AdminProps> = ({ onClose }) => {
 
   const saveToServer = async (updatedQuizzes: QuizData[]) => {
     if (!isLocalhost) {
-      setMessage('Error: You can only save changes when running locally (npm run dev).');
+      setMessage('Error: Local mode required for saving.');
       return;
     }
     try {
@@ -50,12 +60,41 @@ export const AdminDashboard: React.FC<AdminProps> = ({ onClose }) => {
       });
       if (res.ok) {
         setQuizzes(updatedQuizzes);
-        setMessage('Changes saved successfully!');
-      } else {
-        setMessage('Failed to save to server.');
+        setMessage('Quizzes updated!');
       }
     } catch (e) {
-      setMessage('Error saving to server: ' + e);
+      setMessage('Error: ' + e);
+    }
+  };
+
+  const saveSubjectsToServer = async (updatedSubjects: Subject[]) => {
+    if (!isLocalhost) return;
+    try {
+      const res = await fetch('/api/subjects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedSubjects)
+      });
+      if (res.ok) {
+        setSubjects(updatedSubjects);
+        setMessage('Subjects updated!');
+      }
+    } catch (e) {
+      setMessage('Error: ' + e);
+    }
+  };
+
+  const handleAddSubject = () => {
+    const trimmed = newSubjectName.trim().toLowerCase();
+    if (trimmed && !subjects.includes(trimmed)) {
+      saveSubjectsToServer([...subjects, trimmed]);
+      setNewSubjectName('');
+    }
+  };
+
+  const handleDeleteSubject = (s: string) => {
+    if (confirm(`Delete subject "${s}"? This won't delete quizzes but they will lose their category.`)) {
+      saveSubjectsToServer(subjects.filter(sub => sub !== s));
     }
   };
 
@@ -211,18 +250,40 @@ export const AdminDashboard: React.FC<AdminProps> = ({ onClose }) => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-6">
-              <h3 className="text-xl font-semibold text-white mb-4">Upload New</h3>
+              <h3 className="text-xl font-semibold text-white mb-4">Settings</h3>
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">Target Subject</label>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Target Subject (for uploads)</label>
                 <select
                   value={subject}
                   onChange={(e) => setSubject(e.target.value as Subject)}
                   className="w-full p-3 bg-slate-900 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-400"
                 >
-                  <option value="chemistry">Chemistry</option>
-                  <option value="biology">Biology</option>
-                  <option value="physics">Physics</option>
+                  {subjects.map(s => (
+                    <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+                  ))}
                 </select>
+              </div>
+
+              <div className="p-4 bg-slate-900/50 border border-slate-700 rounded-xl space-y-4">
+                <h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Manage Subjects</h4>
+                <div className="flex gap-2">
+                  <input 
+                    type="text"
+                    value={newSubjectName}
+                    onChange={(e) => setNewSubjectName(e.target.value)}
+                    placeholder="New subject name..."
+                    className="flex-1 bg-slate-900 border border-slate-700 p-2 rounded text-sm text-white"
+                  />
+                  <button onClick={handleAddSubject} className="px-4 py-2 bg-slate-700 text-white rounded hover:bg-slate-600">+</button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {subjects.map(s => (
+                    <div key={s} className="flex items-center gap-2 px-3 py-1 bg-slate-800 border border-slate-700 rounded-full text-xs text-slate-300">
+                      <span>{s}</span>
+                      <button onClick={() => handleDeleteSubject(s)} className="text-red-400 hover:text-red-300 font-bold ml-1">×</button>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               <div className="border-2 border-dashed border-slate-600 rounded-xl p-8 text-center hover:border-cyan-400 transition-colors cursor-pointer relative">

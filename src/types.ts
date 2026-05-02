@@ -12,7 +12,7 @@ export interface Question {
   explanation: Explanation;
 }
 
-export type Subject = 'chemistry' | 'biology' | 'physics';
+export type Subject = string;
 export type ContentType = 'quiz' | 'html';
 
 export interface QuizData {
