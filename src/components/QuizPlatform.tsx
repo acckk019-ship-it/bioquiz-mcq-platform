@@ -451,10 +451,14 @@ export default function QuizPlatform() {
                     <Home className="w-5 h-5" /> {lang === 'en' ? 'Back' : 'رجوع'}
                   </button>
                 </div>
-                <div 
-                  className="prose dark:prose-invert max-w-none prose-emerald"
-                  dangerouslySetInnerHTML={{ __html: currentQuiz.htmlContent || '' }}
-                />
+                <div className="w-full aspect-[16/9] sm:aspect-video rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800">
+                  <iframe 
+                    srcDoc={currentQuiz.htmlContent || ''} 
+                    className="w-full h-full border-none"
+                    title={currentQuiz.title_en}
+                    sandbox="allow-scripts allow-same-origin"
+                  />
+                </div>
               </div>
             </motion.div>
           )}
