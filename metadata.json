@@ -1,0 +1,5 @@
+{
+  "name": "BioQuiz MCQ Platform",
+  "description": "A comprehensive multi-language quiz platform for Biology and Chemistry with offline export capabilities.",
+  "requestFramePermissions": []
+}
