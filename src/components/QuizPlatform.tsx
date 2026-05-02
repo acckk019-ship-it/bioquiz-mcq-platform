@@ -16,10 +16,12 @@ import {
   Home,
   Play,
   Pause,
-  Eye
+  Eye,
+  Settings
 } from 'lucide-react';
 import { allQuizzes, knowledgeGapsData } from '../data';
-import { QuizData, Question, GapsData } from '../types';
+import { QuizData, Question, GapsData, Subject } from '../types';
+import { AdminDashboard } from './Admin';
 
 export default function QuizPlatform() {
   const [currentQuiz, setCurrentQuiz] = useState<QuizData | null>(null);
@@ -30,10 +32,12 @@ export default function QuizPlatform() {
   const [showExplanation, setShowExplanation] = useState(false);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [isFinished, setIsFinished] = useState(false);
-  const [view, setView] = useState<'home' | 'quiz' | 'gaps' | 'notes' | 'explanations'>('home');
+  const [view, setView] = useState<'home' | 'quiz' | 'gaps' | 'notes' | 'explanations' | 'html'>('home');
   const [selectedGapTopic, setSelectedGapTopic] = useState<string | null>(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isAutoplay, setIsAutoplay] = useState(false);
+  const [showAdmin, setShowAdmin] = useState(false);
+  const [selectedSubject, setSelectedSubject] = useState<Subject | 'all'>('all');
 
   const isRtl = lang === 'ar';
 
@@ -87,6 +91,10 @@ export default function QuizPlatform() {
 
   const startQuiz = (quiz: QuizData) => {
     setCurrentQuiz(quiz);
+    if (quiz.type === 'html') {
+      setView('html');
+      return;
+    }
     setCurrentQuestionIdx(0);
     setScore(0);
     setShowExplanation(false);
@@ -174,6 +182,14 @@ export default function QuizPlatform() {
               </button>
               
               <button 
+                onClick={() => setShowAdmin(true)}
+                className="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors flex items-center gap-2"
+              >
+                <Settings className="w-5 h-5" />
+                <span className="hidden sm:inline text-xs font-bold uppercase">{lang === 'en' ? 'Admin' : 'مسؤول'}</span>
+              </button>
+
+              <button 
                 onClick={() => setIsDarkMode(!isDarkMode)}
                 className="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
               >
@@ -183,6 +199,8 @@ export default function QuizPlatform() {
           </div>
         </div>
       </nav>
+
+      {showAdmin && <AdminDashboard onClose={() => setShowAdmin(false)} />}
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <AnimatePresence mode="wait">
@@ -205,8 +223,24 @@ export default function QuizPlatform() {
                 </p>
               </div>
 
+              <div className="flex justify-center gap-4 mb-8">
+                {(['all', 'chemistry', 'biology', 'physics'] as const).map(subj => (
+                  <button
+                    key={subj}
+                    onClick={() => setSelectedSubject(subj)}
+                    className={`px-6 py-2 rounded-full font-bold uppercase tracking-widest text-sm transition-colors border-2 ${
+                      selectedSubject === subj
+                        ? 'bg-emerald-600 text-white border-emerald-600'
+                        : 'bg-transparent text-slate-500 border-slate-200 dark:border-slate-800 hover:border-emerald-400'
+                    }`}
+                  >
+                    {subj}
+                  </button>
+                ))}
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {allQuizzes.map((quiz) => (
+                {allQuizzes.filter(q => selectedSubject === 'all' || q.subject === selectedSubject).map((quiz) => (
                   <motion.div
                     key={quiz.id}
                     whileHover={{ y: -5 }}
@@ -397,6 +431,31 @@ export default function QuizPlatform() {
                   </div>
                 </div>
               )}
+            </motion.div>
+          )}
+
+          {view === 'html' && currentQuiz && (
+            <motion.div 
+              key="html"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="max-w-4xl mx-auto"
+            >
+              <div className="bg-white dark:bg-slate-900 p-6 sm:p-12 rounded-[2.5rem] shadow-2xl border border-slate-200 dark:border-slate-800">
+                <div className="flex justify-between items-center mb-8">
+                  <h2 className="text-3xl font-bold text-slate-900 dark:text-white">
+                    {lang === 'en' ? currentQuiz.title_en : currentQuiz.title_ar}
+                  </h2>
+                  <button onClick={() => setView('home')} className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+                    <Home className="w-5 h-5" /> {lang === 'en' ? 'Back' : 'رجوع'}
+                  </button>
+                </div>
+                <div 
+                  className="prose dark:prose-invert max-w-none prose-emerald"
+                  dangerouslySetInnerHTML={{ __html: currentQuiz.htmlContent || '' }}
+                />
+              </div>
             </motion.div>
           )}
 

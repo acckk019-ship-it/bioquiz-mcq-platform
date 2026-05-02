@@ -12,10 +12,16 @@ export interface Question {
   explanation: Explanation;
 }
 
+export type Subject = 'chemistry' | 'biology' | 'physics';
+export type ContentType = 'quiz' | 'html';
+
 export interface QuizData {
   id: string;
   title_en: string;
   title_ar: string;
+  subject?: Subject;
+  type?: ContentType;
+  htmlContent?: string;
   questions: Question[];
 }
 
